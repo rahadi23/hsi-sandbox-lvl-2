@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="icon" type="image/png" href="/assets/png/favicon-16x16.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>Get a Project Quote - HSI Sandbox Lvl. 2</title>
+
+    <link rel="stylesheet" href="/assets/css/reset.css" />
+    <link rel="stylesheet" href="/assets/css/style.css" />
+  </head>
+
+  <body>
+    <div id="app"></div>
+
+    <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6.26.0/babel.js"></script>
+    <script src="https://unpkg.com/prop-types@15.8.1/prop-types.js"></script>
+
+    <script type="text/babel">
+      // COMMON HOOKS
+      const useForm = ({ values, validations, labels }) => {
+        const [formValues, setFormValues] = React.useState(values);
+        const [errors, setErrors] = React.useState({});
+        const refs = React.useRef({});
+
+        function handleValidate(name) {
+          if (name) {
+            const rule = validations[name];
+
+            const error = rule
+              ? rule(formValues[name], name, labels[name])
+              : null;
+
+            setErrors((errors) => ({
+              ...errors,
+              [name]: error,
+            }));
+
+            return !!!error;
+          } else {
+            const results = {};
+
+            for (const [name, rule] of Object.entries(validations)) {
+              results[name] = rule
+                ? rule(formValues[name], name, labels[name])
+                : null;
+            }
+
+            setErrors(results);
+
+            const firstError = Object.entries(results).find(
+              ([key, val]) => !!val
+            );
+
+            if (
+              firstError &&
+              firstError[0] &&
+              refs.current[firstError[0]] &&
+              refs.current[firstError[0]].focus
+            ) {
+              refs.current[firstError[0]].focus();
+            }
+
+            return !firstError;
+          }
+        }
+
+        return {
+          values: formValues,
+          errors,
+          getInputProps(name) {
+            return {
+              name,
+              label: labels[name],
+              value: formValues[name],
+              error: errors[name],
+              onBlur() {
+                handleValidate(name);
+              },
+              onChange(event) {
+                setFormValues((values) => {
+                  return { ...values, [name]: event.target.value };
+                });
+              },
+              ref(ref) {
+                refs.current[name] = ref;
+              },
+            };
+          },
+          validate() {
+            return handleValidate();
+          },
+          setValue(name, value) {
+            setFormValues((values) => ({ ...values, [name]: value }));
+          },
+        };
+      };
+
+      // COMMON COMPONENTS
+      // COMMON COMPONENTS > Title
+      function Title() {
+        return (
+          <div className="title-wrapper">
+            <h1>Get a project quote</h1>
+
+            <span
+              style={{
+                fontSize: "18px",
+                lineHeight: "30px",
+                color: "#6F6C90",
+              }}
+            >
+              Please fill the form below to receive a quote for your project.
+              Feel free to add as much detail as needed.
+            </span>
+          </div>
+        );
+      }
+
+      // COMMON COMPONENTS > Stepper
+      function Stepper({ steps, value }) {
+        return (
+          <div className="stepper-wrapper">
+            {[...Array(steps).keys()].map((step, idx, arr) => {
+              let stepperStepClassName = "stepper-step";
+              let stepperDividerClassName = "stepper-divider";
+
+              if (step + 1 <= value) {
+                stepperStepClassName += " stepper-step-active";
+
+                if (step + 1 < value) {
+                  stepperDividerClassName += " stepper-divider-completed";
+                } else {
+                  stepperDividerClassName += " stepper-divider-active";
+                }
+              }
+
+              return (
+                <React.Fragment key={step}>
+                  <div className={stepperStepClassName}>{step + 1}</div>
+
+                  {step + 1 < arr.length ? (
+                    <div className={stepperDividerClassName}></div>
+                  ) : null}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        );
+      }
+      Stepper.propTypes = {
+        steps: PropTypes.number.isRequired,
+        value: function (props, propName, componentName) {
+          if (props[propName] === undefined || props[propName] === null) {
+            return;
+          }
+
+          const steps = props["steps"];
+
+          if (props[propName] < 1) {
+            return new Error(
+              `${propName} props supplied to '${componentName}' component should not be lower than 1 (${props[propName]}).`
+            );
+          }
+
+          if (props[propName] > steps) {
+            return new Error(
+              `${propName} props supplied to '${componentName}' component should not be greater than 'steps' props (${props[propName]} vs ${steps}).`
+            );
+          }
+        },
+      };
+
+      // STEP 1 COMPONENTS
+      // STEP 1 COMPONENTS > Input
+      const Input = React.forwardRef(function Input(
+        { name, label, icon, type, error, ...restProps },
+        ref
+      ) {
+        return (
+          <div
+            className={`input-wrapper ${error ? "input-invalid" : ""}`.trim()}
+          >
+            <label htmlFor={name}>{label}</label>
+
+            <div className="input-inner-wrapper">
+              <input
+                ref={ref}
+                id={name}
+                name={name}
+                type={type}
+                placeholder={label}
+                className="input-input"
+                {...restProps}
+              />
+
+              <img className="input-icon" src={`/assets/svg/${icon}.svg`} />
+            </div>
+
+            <span className="input-error">{error}</span>
+          </div>
+        );
+      });
+
+      Input.propTypes = {
+        name: PropTypes.string.isRequired,
+        label: PropTypes.string.isRequired,
+        icon: PropTypes.oneOf(["user", "mail", "phone", "building"]).isRequired,
+        type: PropTypes.oneOf(["text", "number", "email"]).isRequired,
+        error: PropTypes.string,
+      };
+
+      // STEP 1 COMPONENTS > Step 1 Form
+      function Step1Form({ getInputProps }) {
+        return (
+          <React.Fragment>
+            <div style={{ marginTop: 64 }}>
+              <h2>Contact details</h2>
+
+              <span
+                style={{
+                  fontWeight: 400,
+                  fontSize: "18px",
+                  lineHeight: "30px",
+                  color: "#6F6C90",
+                }}
+              >
+                Lorem ipsum dolor sit amet consectetur adipisc.
+              </span>
+            </div>
+
+            <div
+              style={{
+                marginTop: 40,
+                marginBottom: 80,
+                display: "flex",
+                flexDirection: "column",
+                gap: 28,
+              }}
+            >
+              <div style={{ display: "flex", gap: 28 }}>
+                <div
+                  style={{
+                    flexGrow: 0,
+                    width: "50%",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <Input {...getInputProps("name")} icon="user" type="text" />
+                </div>
+
+                <div
+                  style={{
+                    flexGrow: 0,
+                    width: "50%",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <Input {...getInputProps("email")} icon="mail" type="email" />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 28 }}>
+                <div
+                  style={{
+                    flexGrow: 0,
+                    width: "50%",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <Input {...getInputProps("phone")} icon="phone" type="text" />
+                </div>
+
+                <div
+                  style={{
+                    flexGrow: 0,
+                    width: "50%",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <Input
+                    {...getInputProps("company")}
+                    icon="building"
+                    type="text"
+                  />
+                </div>
+              </div>
+            </div>
+          </React.Fragment>
+        );
+      }
+
+      // STEP 2 COMPONENTS > Service Items
+      function ServiceItem({ icon, name, selected, onSelect }) {
+        return (
+          <div
+            className={`service-item-wrapper ${
+              selected ? "service-item-active" : ""
+            }`.trim()}
+            onClick={() => {
+              if (onSelect) {
+                onSelect(name);
+              }
+            }}
+          >
+            <div className="service-item-icon">
+              <img src={`/assets/svg/service-${icon}.svg`} />
+            </div>
+
+            <span className="service-item-name">{name}</span>
+          </div>
+        );
+      }
+
+      // STEP 2 COMPONENTS > Step 2 Form
+      function Step2Form({ value, onChange }) {
+        function handleSelect(value) {
+          if (onChange) {
+            onChange(value);
+          }
+        }
+
+        return (
+          <React.Fragment>
+            <div style={{ marginTop: 64 }}>
+              <h2>Our services</h2>
+
+              <span
+                style={{
+                  fontWeight: 400,
+                  fontSize: "18px",
+                  lineHeight: "30px",
+                  color: "#6F6C90",
+                }}
+              >
+                Please select which service you are interested in.
+              </span>
+            </div>
+
+            <div
+              style={{
+                marginTop: 40,
+                marginBottom: 80,
+                display: "flex",
+                flexDirection: "column",
+                gap: 28,
+              }}
+            >
+              <div
+                style={{ display: "flex", gap: 28, justifyContent: "stretch" }}
+              >
+                <ServiceItem
+                  icon="development"
+                  name="Development"
+                  selected={value === "Development"}
+                  onSelect={(name) => handleSelect(name)}
+                />
+
+                <ServiceItem
+                  icon="web"
+                  name="Web Design"
+                  selected={value === "Web Design"}
+                  onSelect={(name) => handleSelect(name)}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 28 }}>
+                <ServiceItem
+                  icon="marketing"
+                  name="Marketing"
+                  selected={value === "Marketing"}
+                  onSelect={(name) => handleSelect(name)}
+                />
+
+                <ServiceItem
+                  icon="other"
+                  name="Other"
+                  selected={value === "Other"}
+                  onSelect={(name) => handleSelect(name)}
+                />
+              </div>
+            </div>
+          </React.Fragment>
+        );
+      }
+
+      // STEP 3 COMPONENTS > Budget Item
+      function BudgetItem({ name, selected, onSelect }) {
+        return (
+          <div
+            className={`budget-item-wrapper ${
+              selected ? "budget-item-active" : ""
+            }`.trim()}
+            onClick={() => {
+              if (onSelect) {
+                onSelect(name);
+              }
+            }}
+          >
+            <div className="budget-item-radio"></div>
+
+            <span className="budget-item-name">{name}</span>
+          </div>
+        );
+      }
+
+      // STEP 3 COMPONENTS > Step 3 Form
+      function Step3Form({ value, onChange }) {
+        function handleSelect(value) {
+          if (onChange) {
+            onChange(value);
+          }
+        }
+
+        return (
+          <React.Fragment>
+            <div style={{ marginTop: 64 }}>
+              <h2>What’s your project budget?</h2>
+
+              <span
+                style={{
+                  fontWeight: 400,
+                  fontSize: "18px",
+                  lineHeight: "30px",
+                  color: "#6F6C90",
+                }}
+              >
+                Please select the project budget range you have in mind.
+              </span>
+            </div>
+
+            <div
+              style={{
+                marginTop: 40,
+                marginBottom: 80,
+                display: "flex",
+                flexDirection: "column",
+                gap: 28,
+              }}
+            >
+              <div
+                style={{ display: "flex", gap: 28, justifyContent: "stretch" }}
+              >
+                <BudgetItem
+                  name="5000 - 10000"
+                  selected={value === "5000 - 10000"}
+                  onSelect={(name) => handleSelect(name)}
+                />
+
+                <BudgetItem
+                  name="10000 - 20000"
+                  selected={value === "10000 - 20000"}
+                  onSelect={(name) => handleSelect(name)}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 28 }}>
+                <BudgetItem
+                  name="20000 - 50000"
+                  selected={value === "20000 - 50000"}
+                  onSelect={(name) => handleSelect(name)}
+                />
+
+                <BudgetItem
+                  name="50000 +"
+                  selected={value === "50000 +"}
+                  onSelect={(name) => handleSelect(name)}
+                />
+              </div>
+            </div>
+          </React.Fragment>
+        );
+      }
+
+      // STEP 4 COMPONENTS > Step 4 Form
+      function Step4Form({ onSubmit }) {
+        return (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <img
+              src="/assets/svg/submit.svg"
+              style={{ marginTop: 40, width: 157 }}
+            />
+
+            <div style={{ marginTop: 18, textAlign: "center" }}>
+              <h2>Submit your quote request</h2>
+
+              <span
+                style={{
+                  fontWeight: 400,
+                  fontSize: "18px",
+                  lineHeight: "30px",
+                  color: "#6F6C90",
+                  textAlign: "center",
+                }}
+              >
+                Please review all the information you previously typed in the
+                past steps, and if all is okay, submit your message to receive a
+                project quote in 24 - 48 hours.
+              </span>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginTop: 36,
+                marginBottom: 84,
+              }}
+            >
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={onSubmit}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      // FORM COMPONENT
+      function Form() {
+        const steps = 4;
+
+        const [step, setStep] = React.useState(1);
+
+        const { getInputProps, validate, values, isValid, setValue } = useForm({
+          values: {
+            name: "",
+            email: "",
+            phone: "",
+            company: "",
+            service: "Development",
+            budget: "50000 +",
+          },
+
+          validations: {
+            name(value, name, label) {
+              if (!value) {
+                return `${label} is required`;
+              }
+
+              return null;
+            },
+
+            email(value, name, label) {
+              if (!value) {
+                return `${label} is required`;
+              }
+
+              if (!value.endsWith("@gmail.com")) {
+                return `${label} should ends with @gmail.com`;
+              }
+
+              if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(value)) {
+                return `${label} should be an email`;
+              }
+
+              return null;
+            },
+
+            phone(value, name, label) {
+              if (!value) {
+                return `${label} is required`;
+              }
+
+              if (!value.startsWith("08")) {
+                return `${label} should starts with '08'`;
+              }
+
+              if (value.length < 8 || value.length > 12) {
+                return `${label} should consists of 8-12 characters`;
+              }
+
+              return null;
+            },
+
+            company(value, name, label) {
+              if (!value) {
+                return `${label} is required`;
+              }
+
+              return null;
+            },
+          },
+
+          labels: {
+            name: "Name",
+            email: "Email",
+            phone: "Phone Number",
+            company: "Company Name",
+          },
+        });
+
+        const handlePrevious = () => {
+          setStep((step) => step - 1);
+        };
+
+        const handleSubmit = (event) => {
+          event.preventDefault();
+
+          const isValid = validate();
+
+          if (isValid) {
+            setStep((step) => step + 1);
+          }
+        };
+
+        const stepForm = React.useMemo(() => {
+          switch (step) {
+            case 1:
+              return <Step1Form getInputProps={getInputProps} />;
+            case 2:
+              return (
+                <Step2Form
+                  value={values.service}
+                  onChange={(value) => setValue("service", value)}
+                />
+              );
+            case 3:
+              return (
+                <Step3Form
+                  value={values.budget}
+                  onChange={(value) => setValue("budget", value)}
+                />
+              );
+            case 4:
+              return (
+                <Step4Form
+                  onSubmit={() => alert(JSON.stringify(values, null, 2))}
+                />
+              );
+          }
+        }, [step, getInputProps]);
+
+        return (
+          <div className="form-wrapper">
+            <form onSubmit={handleSubmit}>
+              <div className="card">
+                <div className="card-body">
+                  <Stepper steps={steps} value={step} />
+
+                  {stepForm}
+                </div>
+              </div>
+
+              <div className="button-wrapper" style={{ marginTop: 32 }}>
+                {step > 1 ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handlePrevious}
+                  >
+                    Previous Step
+                  </button>
+                ) : null}
+
+                {step < steps ? (
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    style={{ marginLeft: "auto" }}
+                  >
+                    Next Step
+                  </button>
+                ) : null}
+              </div>
+            </form>
+          </div>
+        );
+      }
+
+      function App() {
+        return (
+          <div>
+            <Title />
+
+            <div style={{ marginTop: "42px" }}>
+              <Form />
+            </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("app"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
