@@ -625,7 +625,7 @@
           }
         };
 
-        const stepForm = React.useMemo(() => {
+        function renderStepForm() {
           switch (step) {
             case 1:
               return <Step1Form getInputProps={getInputProps} />;
@@ -650,7 +650,7 @@
                 />
               );
           }
-        }, [step, getInputProps]);
+        }
 
         return (
           <div className="form-wrapper">
@@ -659,7 +659,7 @@
                 <div className="card-body">
                   <Stepper steps={steps} value={step} />
 
-                  {stepForm}
+                  {renderStepForm()}
                 </div>
               </div>
 
