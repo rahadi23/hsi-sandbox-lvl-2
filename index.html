@@ -587,12 +587,8 @@
                 return `${label} is required`;
               }
 
-              if (!value.startsWith("08")) {
-                return `${label} should starts with '08'`;
-              }
-
-              if (value.length < 8 || value.length > 12) {
-                return `${label} should consists of 8-12 characters`;
+              if (!/^08[0-9]{8,12}$/.test(value)) {
+                return `${label} should be 10-14 chars long and begins with '08'`;
               }
 
               return null;
